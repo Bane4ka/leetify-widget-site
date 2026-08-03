@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leetify Widget — статистика CS2 на экране iPhone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --bg-panel: #12121d;
+    --line: #22222f;
+    --text: #eceef4;
+    --muted: #8b8b9c;
+    --pink: #F84982;
+    --cyan: #4ee6d6;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --display: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 900px 500px at 20% -10%, rgba(248,73,130,0.10), transparent),
+      radial-gradient(ellipse 700px 500px at 90% 10%, rgba(78,230,214,0.06), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: 0.01em; }
+  .brand span { color: var(--pink); }
+  .top-right { display: flex; align-items: center; gap: 20px; }
+  .top a { color: var(--muted); text-decoration: none; font-size: 14px; font-family: var(--mono); }
+  .top a:hover { color: var(--text); }
+
+  .lang-switch {
+    display: flex; gap: 2px; background: var(--bg-panel); border: 1px solid var(--line);
+    border-radius: 7px; padding: 3px;
+  }
+  .lang-switch button {
+    background: none; border: none; color: var(--muted);
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    padding: 5px 9px; border-radius: 5px; cursor: pointer; letter-spacing: 0.02em;
+  }
+  .lang-switch button:hover { color: var(--text); }
+  .lang-switch button.active { background: var(--pink); color: #14060c; }
+
+  .hero { padding: 72px 0 48px; text-align: center; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--cyan); margin-bottom: 18px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(32px, 6vw, 48px); line-height: 1.08; letter-spacing: -0.01em;
+    margin-bottom: 18px;
+  }
+  h1 em { font-style: normal; color: var(--pink); }
+  .lede { color: var(--muted); font-size: 17px; max-width: 480px; margin: 0 auto 40px; }
+
+  /* Widget mockup — точная копия того, что реально появится на экране */
+  .widget-mock {
+    width: 260px; margin: 0 auto;
+    background: linear-gradient(160deg, #1a1a2e, #16213e);
+    border-radius: 28px;
+    padding: 20px 22px;
+    box-shadow: 0 30px 60px -20px rgba(248,73,130,0.25), 0 0 0 1px rgba(255,255,255,0.04);
+    text-align: left;
+  }
+  .widget-title { font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--pink); letter-spacing: 0.02em; }
+  .widget-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 0; font-size: 13px; font-family: var(--mono);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .widget-row:last-of-type { border-bottom: none; }
+  .widget-row .label { color: var(--muted); font-size: 11px; }
+  .widget-row .val { font-weight: 600; }
+  .widget-sub { margin-top: 12px; padding-top: 4px; }
+  .widget-foot { margin-top: 10px; font-size: 8px; color: var(--muted); opacity: 0.7; }
+
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  .section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 28px; }
+  .section-num { font-family: var(--mono); color: var(--cyan); font-size: 13px; }
+  h2 { font-family: var(--display); font-weight: 600; font-size: 22px; }
+
+  .step { display: flex; gap: 18px; margin-bottom: 26px; align-items: flex-start; }
+  .step:last-child { margin-bottom: 0; }
+  .step-marker {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px;
+    background: var(--bg-panel); border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; color: var(--cyan);
+  }
+  .step-body h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .step-body p { color: var(--muted); font-size: 14px; }
+  .step-body a { color: var(--cyan); }
+
+  .code-block {
+    position: relative; margin-top: 16px;
+    background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px 18px; font-family: var(--mono); font-size: 13px; color: var(--text);
+  }
+  .code-block .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--pink); color: #14060c; border: none; border-radius: 6px;
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    padding: 6px 12px; cursor: pointer;
+  }
+  .code-block .copy-btn:hover { background: #ff5f96; }
+  .code-block .copy-btn.copied { background: var(--cyan); }
+
+  .param-example {
+    font-family: var(--mono); background: var(--bg-panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; display: inline-block; color: var(--cyan);
+  }
+
+  .note {
+    margin-top: 40px; padding: 16px 18px; border-radius: 10px;
+    background: rgba(78,230,214,0.06); border: 1px solid rgba(78,230,214,0.2);
+    font-size: 13px; color: var(--muted);
+  }
+  .note strong { color: var(--text); }
+
+  footer { padding: 40px 0 60px; text-align: center; color: var(--muted); font-size: 13px; font-family: var(--mono); }
+  footer a { color: var(--pink); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">leetify<span>widget</span></div>
+    <div class="top-right">
+      <div class="lang-switch" id="lang-switch">
+        <button data-lang="en" class="active">EN</button>
+        <button data-lang="ru">RU</button>
+        <button data-lang="uk">UK</button>
+        <button data-lang="pt">PT</button>
+      </div>
+      <a href="https://leetify.com" target="_blank">leetify.com ↗</a>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow" data-i18n="eyebrow">CS2 · widget for iPhone</div>
+    <h1 data-i18n-html="h1">Your Leetify stats <em>right on the screen</em></h1>
+    <p class="lede" data-i18n="lede">Rating, Aim, Positioning, Utility and your last match — no need to open the app. Setup takes 2 minutes, zero code required.</p>
+
+    <div class="widget-mock">
+      <div class="widget-title">LEETIFY</div>
+      <div style="height:10px"></div>
+      <div class="widget-row"><span class="label">Rating</span><span class="val">1.08</span></div>
+      <div class="widget-row"><span class="label">Aim</span><span class="val">71.9</span></div>
+      <div class="widget-row"><span class="label">Positioning</span><span class="val">52.0</span></div>
+      <div class="widget-row"><span class="label">Utility</span><span class="val">45.2</span></div>
+      <div class="widget-row"><span class="label">Winrate</span><span class="val">62%</span></div>
+      <div class="widget-row"><span class="label">Time to Dmg</span><span class="val">612ms</span></div>
+      <div class="widget-sub">
+        <div class="widget-title" style="font-size:11px" data-i18n="lastMatchTitle">LAST MATCH</div>
+        <div class="widget-row"><span class="label" data-i18n="map">Map</span><span class="val">de_mirage</span></div>
+        <div class="widget-row"><span class="label" data-i18n="score">Score</span><span class="val">8:13</span></div>
+      </div>
+      <div class="widget-foot">Data by Leetify</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2 data-i18n="step1title">Install Scriptable</h2></div>
+    <div class="step">
+      <div class="step-marker">→</div>
+      <div class="step-body">
+        <h3 data-i18n="step1h">Free app from the App Store</h3>
+        <p data-i18n-html="step1p">Scriptable is the standard tool for custom iOS widgets. <a href="https://apps.apple.com/app/scriptable/id1405459188" target="_blank">Open in App Store ↗</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2 data-i18n="step2title">Find your Steam64 ID</h2></div>
+    <div class="step">
+      <div class="step-marker">→</div>
+      <div class="step-body">
+        <h3 data-i18n="step2h">The 17-digit number of your profile</h3>
+        <p data-i18n-html="step2p">Paste your Steam profile link at <a href="https://steamid.io" target="_blank">steamid.io ↗</a> — you'll get a string like <span class="param-example">76561199002476923</span></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2 data-i18n="step3title">Copy the widget code</h2></div>
+    <div class="step">
+      <div class="step-marker">→</div>
+      <div class="step-body">
+        <h3 data-i18n="step3h">Paste it into a new Scriptable script</h3>
+        <p data-i18n="step3p">In Scriptable: <strong>+</strong> → paste code → save. Nothing to edit.</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyScript()" data-i18n="copyBtn">Copy</button>
+          <div id="script-preview">// Leetify Stats Widget — public version
+// Nothing to edit in the code.
+// Steam ID goes into the widget parameter in step 4.
+const PROXY_URL = "https://leetify-widget.onrender.com";
+// ... full code copied on click</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2 data-i18n="step4title">Add the widget to your screen</h2></div>
+    <div class="step">
+      <div class="step-marker">→</div>
+      <div class="step-body">
+        <h3 data-i18n="step4ah">Long-press screen → «+» → Scriptable</h3>
+        <p data-i18n="step4ap">Pick a size (Small / Medium / Large), add it to your screen.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-marker">→</div>
+      <div class="step-body">
+        <h3 data-i18n="step4bh">Enter your Steam ID in the parameter</h3>
+        <p data-i18n-html="step4bp">Long-press the widget → <strong>Edit Widget</strong> → in the <strong>Parameter</strong> field type:</p>
+        <div class="param-example">76561199002476923,full</div>
+        <p style="margin-top:8px" data-i18n-html="step4bp2">Without <span class="param-example" style="padding:2px 8px">,full</span> — compact mode (4 lines, no match).</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="note" data-i18n-html="note">
+    <strong>How it works:</strong> the widget doesn't talk to Leetify directly — it goes through a proxy server that hides the API key and caches responses. Data refreshes roughly every 15 minutes, that's an iOS limitation, not the widget's.
+  </div>
+
+  <footer data-i18n-html="footer">
+    Data provided by <a href="https://leetify.com" target="_blank">Leetify</a> · built solo, for fun
+  </footer>
+
+</div>
+
+<script>
+  const translations = {
+    en: {
+      eyebrow: "CS2 · widget for iPhone",
+      h1: "Your Leetify stats <em>right on the screen</em>",
+      lede: "Rating, Aim, Positioning, Utility and your last match — no need to open the app. Setup takes 2 minutes, zero code required.",
+      lastMatchTitle: "LAST MATCH", map: "Map", score: "Score",
+      step1title: "Install Scriptable", step1h: "Free app from the App Store",
+      step1p: "Scriptable is the standard tool for custom iOS widgets. <a href=\"https://apps.apple.com/app/scriptable/id1405459188\" target=\"_blank\">Open in App Store ↗</a>",
+      step2title: "Find your Steam64 ID", step2h: "The 17-digit number of your profile",
+      step2p: "Paste your Steam profile link at <a href=\"https://steamid.io\" target=\"_blank\">steamid.io ↗</a> — you'll get a string like <span class=\"param-example\">76561199002476923</span>",
+      step3title: "Copy the widget code", step3h: "Paste it into a new Scriptable script",
+      step3p: "In Scriptable: <strong>+</strong> → paste code → save. Nothing to edit.",
+      copyBtn: "Copy",
+      step4title: "Add the widget to your screen",
+      step4ah: "Long-press screen → «+» → Scriptable", step4ap: "Pick a size (Small / Medium / Large), add it to your screen.",
+      step4bh: "Enter your Steam ID in the parameter",
+      step4bp: "Long-press the widget → <strong>Edit Widget</strong> → in the <strong>Parameter</strong> field type:",
+      step4bp2: "Without <span class=\"param-example\" style=\"padding:2px 8px\">,full</span> — compact mode (4 lines, no match).",
+      note: "<strong>How it works:</strong> the widget doesn't talk to Leetify directly — it goes through a proxy server that hides the API key and caches responses. Data refreshes roughly every 15 minutes, that's an iOS limitation, not the widget's.",
+      footer: "Data provided by <a href=\"https://leetify.com\" target=\"_blank\">Leetify</a> · built solo, for fun",
+      copiedLabel: "Copied ✓",
+    },
+    ru: {
+      eyebrow: "CS2 · виджет для iPhone",
+      h1: "Твоя статистика Leetify <em>прямо на экране</em>",
+      lede: "Rating, Aim, Positioning, Utility и последний матч — без открытия приложения. Настройка — 2 минуты, без единой строчки кода.",
+      lastMatchTitle: "ПОСЛЕДНИЙ МАТЧ", map: "Карта", score: "Счёт",
+      step1title: "Установи Scriptable", step1h: "Бесплатное приложение из App Store",
+      step1p: "Scriptable — стандартный инструмент для кастомных виджетов на iOS. <a href=\"https://apps.apple.com/app/scriptable/id1405459188\" target=\"_blank\">Открыть в App Store ↗</a>",
+      step2title: "Узнай свой Steam64 ID", step2h: "17-значный номер твоего профиля",
+      step2p: "Вставь ссылку на свой Steam-профиль на <a href=\"https://steamid.io\" target=\"_blank\">steamid.io ↗</a> — сайт покажет строку вида <span class=\"param-example\">76561199002476923</span>",
+      step3title: "Скопируй код виджета", step3h: "Вставь в новый скрипт Scriptable",
+      step3p: "В Scriptable: <strong>+</strong> → вставить код → сохранить. Редактировать ничего не нужно.",
+      copyBtn: "Скопировать",
+      step4title: "Добавь виджет на экран",
+      step4ah: "Зажми экран → «+» → Scriptable", step4ap: "Выбери размер (Small / Medium / Large), добавь на экран.",
+      step4bh: "Укажи свой Steam ID в параметре",
+      step4bp: "Зажми виджет → <strong>Edit Widget</strong> → в поле <strong>Parameter</strong> впиши:",
+      step4bp2: "Без <span class=\"param-example\" style=\"padding:2px 8px\">,full</span> — компактный режим (4 строки, без матча).",
+      note: "<strong>Как это работает:</strong> виджет обращается не напрямую к Leetify, а к отдельному серверу-прокси, который прячет API-ключ и кэширует ответы. Обновление данных — раз в ~15 минут, это ограничение самой iOS, а не виджета.",
+      footer: "Data provided by <a href=\"https://leetify.com\" target=\"_blank\">Leetify</a> · сделано на коленке одним человеком",
+      copiedLabel: "Скопировано ✓",
+    },
+    uk: {
+      eyebrow: "CS2 · віджет для iPhone",
+      h1: "Твоя статистика Leetify <em>прямо на екрані</em>",
+      lede: "Rating, Aim, Positioning, Utility та останній матч — без відкриття застосунку. Налаштування — 2 хвилини, без жодного рядка коду.",
+      lastMatchTitle: "ОСТАННІЙ МАТЧ", map: "Карта", score: "Рахунок",
+      step1title: "Встанови Scriptable", step1h: "Безкоштовний застосунок з App Store",
+      step1p: "Scriptable — стандартний інструмент для кастомних віджетів на iOS. <a href=\"https://apps.apple.com/app/scriptable/id1405459188\" target=\"_blank\">Відкрити в App Store ↗</a>",
+      step2title: "Дізнайся свій Steam64 ID", step2h: "17-значний номер твого профілю",
+      step2p: "Встав посилання на свій Steam-профіль на <a href=\"https://steamid.io\" target=\"_blank\">steamid.io ↗</a> — сайт покаже рядок на кшталт <span class=\"param-example\">76561199002476923</span>",
+      step3title: "Скопіюй код віджета", step3h: "Встав у новий скрипт Scriptable",
+      step3p: "У Scriptable: <strong>+</strong> → вставити код → зберегти. Редагувати нічого не потрібно.",
+      copyBtn: "Скопіювати",
+      step4title: "Додай віджет на екран",
+      step4ah: "Затисни екран → «+» → Scriptable", step4ap: "Обери розмір (Small / Medium / Large), додай на екран.",
+      step4bh: "Вкажи свій Steam ID у параметрі",
+      step4bp: "Затисни віджет → <strong>Edit Widget</strong> → у полі <strong>Parameter</strong> впиши:",
+      step4bp2: "Без <span class=\"param-example\" style=\"padding:2px 8px\">,full</span> — компактний режим (4 рядки, без матчу).",
+      note: "<strong>Як це працює:</strong> віджет звертається не напряму до Leetify, а до окремого сервера-проксі, який ховає API-ключ і кешує відповіді. Оновлення даних — раз на ~15 хвилин, це обмеження самої iOS, а не віджета.",
+      footer: "Data provided by <a href=\"https://leetify.com\" target=\"_blank\">Leetify</a> · зроблено однією людиною на колінці",
+      copiedLabel: "Скопійовано ✓",
+    },
+    pt: {
+      eyebrow: "CS2 · widget para iPhone",
+      h1: "Suas estatísticas Leetify <em>direto na tela</em>",
+      lede: "Rating, Aim, Positioning, Utility e sua última partida — sem abrir o app. Configuração em 2 minutos, sem escrever código.",
+      lastMatchTitle: "ÚLTIMA PARTIDA", map: "Mapa", score: "Placar",
+      step1title: "Instale o Scriptable", step1h: "App gratuito da App Store",
+      step1p: "Scriptable é a ferramenta padrão para widgets personalizados no iOS. <a href=\"https://apps.apple.com/app/scriptable/id1405459188\" target=\"_blank\">Abrir na App Store ↗</a>",
+      step2title: "Encontre seu Steam64 ID", step2h: "O número de 17 dígitos do seu perfil",
+      step2p: "Cole o link do seu perfil Steam em <a href=\"https://steamid.io\" target=\"_blank\">steamid.io ↗</a> — você vai receber algo como <span class=\"param-example\">76561199002476923</span>",
+      step3title: "Copie o código do widget", step3h: "Cole em um novo script do Scriptable",
+      step3p: "No Scriptable: <strong>+</strong> → colar código → salvar. Nada para editar.",
+      copyBtn: "Copiar",
+      step4title: "Adicione o widget à tela",
+      step4ah: "Toque e segure a tela → «+» → Scriptable", step4ap: "Escolha um tamanho (Small / Medium / Large), adicione à tela.",
+      step4bh: "Digite seu Steam ID no parâmetro",
+      step4bp: "Toque e segure o widget → <strong>Edit Widget</strong> → no campo <strong>Parameter</strong> digite:",
+      step4bp2: "Sem <span class=\"param-example\" style=\"padding:2px 8px\">,full</span> — modo compacto (4 linhas, sem partida).",
+      note: "<strong>Como funciona:</strong> o widget não fala diretamente com a Leetify — ele passa por um servidor proxy que esconde a chave da API e armazena respostas em cache. Os dados atualizam a cada ~15 minutos, uma limitação do iOS, não do widget.",
+      footer: "Data provided by <a href=\"https://leetify.com\" target=\"_blank\">Leetify</a> · feito sozinho, por diversão",
+      copiedLabel: "Copiado ✓",
+    },
+  };
+
+  let currentLang = "en";
+
+  function applyLang(lang) {
+    currentLang = lang;
+    const dict = translations[lang];
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      if (dict[key]) el.textContent = dict[key];
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(el => {
+      const key = el.getAttribute("data-i18n-html");
+      if (dict[key]) el.innerHTML = dict[key];
+    });
+    document.querySelectorAll("#lang-switch button").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.lang === lang);
+    });
+    document.documentElement.lang = lang;
+  }
+
+  document.getElementById("lang-switch").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-lang]");
+    if (btn) applyLang(btn.dataset.lang);
+  });
+
+  applyLang("en"); // английский — язык по умолчанию
+
+  const fullScript = `// Leetify Stats Widget — публичная версия
+// Ничего в коде редактировать не нужно!
+// Настройка: после добавления виджета на экран, зажми его →
+// Edit Widget → в поле "Parameter" впиши свой Steam64 ID (17 цифр).
+
+// ⚠️ ЗАМЕНИ на адрес своего задеплоенного backend после деплоя на Render/Railway
+const PROXY_URL = "https://leetify-widget.onrender.com";
+
+function bg(widget) {
+  const gradient = new LinearGradient();
+  gradient.locations = [0, 1];
+  gradient.colors = [new Color("#1a1a2e"), new Color("#16213e")];
+  widget.backgroundGradient = gradient;
+}
+
+function addTitle(stack, text) {
+  const t = stack.addText(text);
+  t.font = Font.boldSystemFont(13);
+  t.textColor = new Color("#F84982");
+}
+
+function addStat(stack, label, value) {
+  const row = stack.addStack();
+  row.layoutHorizontally();
+  const l = row.addText(label);
+  l.font = Font.systemFont(11);
+  l.textColor = Color.gray();
+  row.addSpacer();
+  const v = row.addText(String(value));
+  v.font = Font.boldSystemFont(13);
+  v.textColor = Color.white();
+}
+
+function addAttribution(widget) {
+  widget.addSpacer(4);
+  const t = widget.addText("Data by Leetify");
+  t.font = Font.systemFont(8);
+  t.textColor = Color.gray();
+}
+
+async function createWidget(steamId, mode) {
+  const widget = new ListWidget();
+  bg(widget);
+  widget.setPadding(12, 14, 12, 14);
+
+  if (!steamId || !/^7656119\\d{10}$/.test(steamId)) {
+    addTitle(widget, "LEETIFY");
+    widget.addSpacer(6);
+    const t = widget.addText("Впиши Steam64 ID в параметр виджета (Edit Widget → Parameter)");
+    t.font = Font.systemFont(11);
+    t.textColor = Color.orange();
+    return widget;
+  }
+
+  let data;
+  try {
+    const req = new Request(\`\${PROXY_URL}/api/profile?steamId=\${steamId}\`);
+    data = await req.loadJSON();
+    if (data.error) throw new Error(data.error);
+  } catch (e) {
+    addTitle(widget, "LEETIFY");
+    widget.addSpacer(6);
+    const t = widget.addText("Ошибка загрузки");
+    t.textColor = Color.red();
+    return widget;
+  }
+
+  addTitle(widget, "LEETIFY");
+  widget.addSpacer(6);
+
+  if (data.leetifyRating != null) {
+    addStat(widget, "Rating", data.leetifyRating.toFixed(2));
+  }
+  addStat(widget, "Aim", data.aim?.toFixed?.(1) ?? "—");
+  addStat(widget, "Positioning", data.positioning?.toFixed?.(1) ?? "—");
+  addStat(widget, "Utility", data.utility?.toFixed?.(1) ?? "—");
+  addStat(widget, "Winrate", data.winrate != null ? \`\${(data.winrate * 100).toFixed(0)}%\` : "—");
+  if (data.timeToDamage != null) {
+    addStat(widget, "Time to Dmg", \`\${Math.round(data.timeToDamage)}ms\`);
+  }
+
+  if (mode === "full" && data.lastMatch) {
+    widget.addSpacer(8);
+    addTitle(widget, "ПОСЛЕДНИЙ МАТЧ");
+    addStat(widget, "Карта", data.lastMatch.map ?? "—");
+    if (data.lastMatch.score) addStat(widget, "Счёт", data.lastMatch.score.join(":"));
+  }
+
+  addAttribution(widget);
+
+  // Обновление раз в ~15 минут — минимально практичный интервал на iOS
+  widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
+  return widget;
+}
+
+// widgetParameter теперь используется для Steam ID.
+// Формат: "76561199002476923" (compact режим по умолчанию)
+// или "76561199002476923,full" для полного режима с последним матчем.
+const rawParam = args.widgetParameter ?? "";
+const [steamId, modeParam] = rawParam.split(",").map((s) => s?.trim());
+const mode = modeParam === "full" ? "full" : "compact";
+
+const widget = await createWidget(steamId, mode);
+
+if (config.runsInWidget) {
+  Script.setWidget(widget);
+} else {
+  widget.presentMedium();
+}
+Script.complete();
+`;
+  function copyScript() {
+    navigator.clipboard.writeText(fullScript).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      const original = translations[currentLang].copyBtn;
+      btn.textContent = translations[currentLang].copiedLabel;
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+</script>
+</body>
+</html>
